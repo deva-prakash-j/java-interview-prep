@@ -1,4 +1,5 @@
 # Java Interview Prep
 
 
-## Core Java
+## Design Patterns
+- SOLID Principles
