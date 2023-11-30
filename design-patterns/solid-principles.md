@@ -9,7 +9,7 @@
 ## Table
 
 | Principle | Description|
-| --- | --- |
+| :---: | :--- |
 |Single Responsibility|Each class should have one responsibility, one single purpose|
 |Open Closed|Software entities should be open for extension, but closed for modification|
 |Liskov Substitution|If superclass specifies some behaviour, subclass should not change that behaviour|
