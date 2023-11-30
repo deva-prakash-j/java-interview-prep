@@ -6,6 +6,16 @@
 - [Interface Segregation Principle](#interface-segregation-principle)
 - [Dependency Inversion Principle](#dependency-inversion-principle)
 
+## Table
+
+| Principle | Description|
+| --- | --- |
+|Single Responsibility|Each class should have one responsibility, one single purpose|
+|Open Closed|Software entities should be open for extension, but closed for modification|
+|Liskov Substitution|If superclass specifies some behaviour, subclass should not change that behaviour|
+|Interface Segregation|Clients should not be forced to depend upon interfaces that they do not use|
+|Dependency Inversion|High level module should not depend on low level module. Both should depend on abstraction.<br>Abstraction should not depend on details. Details should depend on abstraction.|
+
 ## Single Responsibility Principle
 
 There should never be more than one reason for a class to change `(each class should have one responsibility, one single purpose)`.
