@@ -2,4 +2,4 @@
 
 
 ## Design Patterns
-- SOLID Principles
+- [SOLID Principles](design-patterns/solid-principles.md)
