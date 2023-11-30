@@ -244,5 +244,8 @@ Withdrawals are not supported by FixedTermDepositAccount!!
 By not supporting the withdraw method, the **FixedTermDepositAccount** violates this method specification. Therefore, we cannot reliably substitute FixedTermDepositAccount for Account.
 In other words, the FixedTermDepositAccount has `violated the Liskov Substitution Principle`.
 
+<p align="center">
+<img src="assets/001.webp" width="500" border="2" />
+</p>
 
-Because all accounts do not support withdrawals, we moved the withdraw method from the Account class to a new abstract subclass **WithdrawableAccount**. Both **CurrentAccount** and **SavingsAccount** allow withdrawals. So they’ve now been made subclasses of the new **WithdrawableAccount**.
+Because all accounts do not support withdrawals, we moved the withdraw method from the Account class to a new abstract subclass **WithdrawableAccount**. Both **CurrentAccount** and **SavingsAccount** allow withdrawals. So they’ve now been made subclasses of the new **WithdrawableAccount**. This new design avoids the issues we saw earlier.
