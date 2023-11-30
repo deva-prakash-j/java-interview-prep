@@ -249,3 +249,92 @@ In other words, the FixedTermDepositAccount has `violated the Liskov Substitutio
 </p>
 
 Because all accounts do not support withdrawals, we moved the withdraw method from the Account class to a new abstract subclass **WithdrawableAccount**. Both **CurrentAccount** and **SavingsAccount** allow withdrawals. So they’ve now been made subclasses of the new **WithdrawableAccount**. This new design avoids the issues we saw earlier.
+
+## Interface Segregation Principle
+Clients should not be forced to depend upon interfaces that they do not use `(Should not force subclass to implement unwanted methods)`.
+
+#### Sample Interface and Implementation
+Let’s look into a situation where we’ve got a Payment interface used by an implementation BankPayment:
+
+```java
+public interface Payment { 
+    void initiatePayments();
+    Object status();
+    List<Object> getPayments();
+}
+```
+
+```java
+public class BankPayment implements Payment {
+
+    @Override
+    public void initiatePayments() {
+       // ...
+    }
+
+    @Override
+    public Object status() {
+        // ...
+    }
+
+    @Override
+    public List<Object> getPayments() {
+        // ...
+    }
+}
+```
+
+So far, the implementing class BankPayment needs all the methods in the Payment interface. Thus, it doesn’t violate the principle.
+
+#### Polluting the Interface
+Now, as we move ahead in time, and more features come in, there’s a need to add a **LoanPayment** service. This service is also a kind of Payment but has a few more operations.
+
+```java
+public interface Payment {
+ 
+    // original methods
+    ...
+    void intiateLoanSettlement();
+    void initiateRePayment();
+}
+```
+#### Next, we’ll have the LoanPayment implementation:
+```java
+public class LoanPayment implements Payment {
+
+    @Override
+    public void initiatePayments() {
+        throw new UnsupportedOperationException("This is not a bank payment");
+    }
+
+    @Override
+    public Object status() {
+        // ...
+    }
+
+    @Override
+    public List<Object> getPayments() {
+        // ...
+    }
+
+    @Override
+    public void intiateLoanSettlement() {
+        // ...
+    }
+
+    @Override
+    public void initiateRePayment() {
+        // ...
+    }
+}
+```
+Now, since the Payment interface has changed and more methods were added, all the implementing classes now have to implement the new methods. **The problem is, implementing them is unwanted and could lead to many side effects**. `Here, the LoanPayment implementation class has to implement the initiatePayments() without any actual need for this. And so, the principle is violated.`
+
+#### Applying the Principle
+let’s break up the interfaces and apply the Interface Segregation Principle.
+
+<p align="center">
+<img src="assets/002.webp" width="500" border="2" />
+</p>
+
+**As we can see, the interfaces don’t violate the principle**. The implementations don’t have to provide empty methods. This keeps the code clean and reduces the chance of bugs.
