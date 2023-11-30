@@ -4,7 +4,7 @@
 - [Open Closed Principle](#open-closed-principle)
 - [Liskov Substitution Principle](#liskov-substitution-principle)
 - [Interface Segregation Principle](#interface-segregation-principle)
-- Dependency Inversion Principle
+- [Dependency Inversion Principle](#dependency-inversion-principle)
 
 ## Single Responsibility Principle
 
