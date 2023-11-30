@@ -1,8 +1,8 @@
 # Solid Principles
 
 - [Single Responsibility Principle](#single-responsibility-principle)
-- Open Closed Principle
-- Liskov Substitution Principle
+- [Open Closed Principle](#open-closed-principle)
+- [Liskov Substitution Principle](#liskov-substitution-principle)
 - Interface Segregation Principle
 - Dependency Inversion Principle
 
