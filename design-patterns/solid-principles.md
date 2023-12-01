@@ -3,8 +3,19 @@
 - [Single Responsibility Principle](#single-responsibility-principle)
 - [Open Closed Principle](#open-closed-principle)
 - [Liskov Substitution Principle](#liskov-substitution-principle)
-- Interface Segregation Principle
-- Dependency Inversion Principle
+- [Interface Segregation Principle](#interface-segregation-principle)
+- [Dependency Inversion Principle](#dependency-inversion-principle)
+
+
+## Table
+
+| Principle | Description|
+| :---: | :--- |
+|Single Responsibility|Each class should have one responsibility, one single purpose|
+|Open Closed|Software entities should be open for extension, but closed for modification|
+|Liskov Substitution|If superclass specifies some behaviour, subclass should not change that behaviour|
+|Interface Segregation|Clients should not be forced to depend upon interfaces that they do not use|
+|Dependency Inversion|High level module should not depend on low level module. Both should depend on abstraction.<br>Abstraction should not depend on details. Details should depend on abstraction.|
 
 ## Single Responsibility Principle
 
@@ -338,3 +349,66 @@ let’s break up the interfaces and apply the Interface Segregation Principle.
 </p>
 
 **As we can see, the interfaces don’t violate the principle**. The implementations don’t have to provide empty methods. This keeps the code clean and reduces the chance of bugs.
+
+## Dependency Inversion Principle
+- High level module should not depend on low level module. Both should depend on abstraction.
+- Abstraction should not depend on details. Details should depend on abstraction.
+
+#### Design Choices and the DIP
+Let’s consider a simple **MessagePrinter** class that formats a String value using a `Formatter` component, and writes it somewhere else using a `PrintWriter` component.
+
+```java
+public class MessagePrinter {
+
+	//Writes message to a file
+	public void writeMessage(Message msg, String fileName) throws IOException {
+		Formatter formatter = new JSONFormatter();//creates formatter
+		try(PrintWriter writer = new PrintWriter(new FileWriter(fileName))) { //creates print writer
+			writer.println(formatter.format(msg)); //formats and writes message
+			writer.flush();
+		}
+	}
+}
+```
+```java
+public class Main {
+
+	public static void main(String[] args) throws IOException {
+		
+		Message msg = new Message("This is a message again");
+		MessagePrinter printer = new MessagePrinter();
+		printer.writeMessage(msg, "test_msg.txt");
+	}
+
+}
+```
+
+Required dependency objects are created inside **MessagePrinter** itself, which makes the code non reusable. To fix that we can apply DIP.
+
+```java
+public class MessagePrinter {
+
+	//Writes message to a file
+	public void writeMessage(Message msg, Formatter formatter, PrintWriter writer) throws IOException {
+
+		writer.println(formatter.format(msg)); //formats and writes message
+		writer.flush();
+
+		
+	}
+}
+```
+```java
+public class Main {
+
+	public static void main(String[] args) throws IOException {
+		
+		Message msg = new Message("This is a message again");
+		MessagePrinter printer = new MessagePrinter();
+		try(PrintWriter writer = new PrintWriter(System.out)) {
+			printer.writeMessage(msg, new JSONFormatter(), writer);
+		}
+	}
+
+}
+```
