@@ -6,6 +6,7 @@
 - [Interface Segregation Principle](#interface-segregation-principle)
 - [Dependency Inversion Principle](#dependency-inversion-principle)
 
+
 ## Table
 
 | Principle | Description|
