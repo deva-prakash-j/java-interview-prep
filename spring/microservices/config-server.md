@@ -1,4 +1,3 @@
----
 
 # Spring Cloud Config Server: A Comprehensive Guide
 
