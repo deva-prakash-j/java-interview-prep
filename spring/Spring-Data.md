@@ -310,6 +310,54 @@ This exposes endpoints like:
 
 ## 🔒 10. Best Practices
 
+---
+
+## 🧾 Transaction Concepts and Isolation Levels
+
+Spring supports a wide variety of transaction configurations through annotations and programmatic APIs.
+
+### 🔐 Transaction Isolation Levels
+Isolation levels define the visibility of changes made inside one transaction to others. Spring uses JDBC isolation constants:
+
+| Level | Constant | Description |
+|-------|----------|-------------|
+| **READ_UNCOMMITTED** | `Connection.TRANSACTION_READ_UNCOMMITTED` | Allows dirty reads (i.e., uncommitted changes). |
+| **READ_COMMITTED** | `Connection.TRANSACTION_READ_COMMITTED` | Prevents dirty reads, but non-repeatable reads can occur. |
+| **REPEATABLE_READ** | `Connection.TRANSACTION_REPEATABLE_READ` | Prevents dirty and non-repeatable reads. Phantom reads can still occur. |
+| **SERIALIZABLE** | `Connection.TRANSACTION_SERIALIZABLE` | Most strict. Prevents dirty reads, non-repeatable reads, and phantom reads. |
+
+### 🔄 Propagation Behaviors
+Defines how methods behave when called within an existing transaction:
+
+| Propagation | Description |
+|-------------|-------------|
+| `REQUIRED` | Join existing or create new transaction (default). |
+| `REQUIRES_NEW` | Always create a new transaction, suspending any current one. |
+| `SUPPORTS` | Join if a transaction exists, else execute non-transactionally. |
+| `MANDATORY` | Must run within a transaction. Throws exception if none. |
+| `NEVER` | Must not run within a transaction. Throws exception if there is one. |
+| `NOT_SUPPORTED` | Suspend current transaction if one exists. |
+| `NESTED` | Executes within a nested transaction using savepoints. |
+
+### 🧪 Common Transaction Properties in `@Transactional`
+
+| Property | Purpose | Example |
+|----------|---------|---------|
+| `readOnly` | Optimizes for read operations | `@Transactional(readOnly = true)` |
+| `timeout` | Timeout in seconds | `@Transactional(timeout = 30)` |
+| `rollbackFor` | Specify exception types to trigger rollback | `@Transactional(rollbackFor = IOException.class)` |
+| `noRollbackFor` | Specify exception types to ignore rollback | `@Transactional(noRollbackFor = CustomIgnoredException.class)` |
+| `isolation` | Set transaction isolation level | `@Transactional(isolation = Isolation.SERIALIZABLE)` |
+| `propagation` | Control nested and concurrent transactions | `@Transactional(propagation = Propagation.REQUIRES_NEW)` |
+
+### 🧠 Summary Tips
+- Use `REQUIRES_NEW` cautiously—it's costly and not always necessary.
+- Use `readOnly = true` for queries to allow optimization by some databases.
+- Isolation level choice depends on consistency needs vs performance.
+- Use nested transactions only with supported databases and JDBC drivers.
+
+---
+
 - Use DTOs to avoid exposing entities.
 - Prefer constructor injection over field injection.
 - Use `@Transactional` at the service layer.
