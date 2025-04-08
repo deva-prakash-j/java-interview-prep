@@ -20,7 +20,7 @@ A framework that provides authentication, authorization, and protection against 
 
 ## 🧱 Core Concepts
 
-### Default Security Filters
+### 1. Default Security Filters
 Spring Security uses a chain of filters that intercept HTTP requests to apply various security checks. These filters are executed in a specific order:
 
 1. **`WebAsyncManagerIntegrationFilter`** – Integrates Spring Security with Spring Web’s `AsyncManager`.
@@ -42,7 +42,7 @@ Spring Security uses a chain of filters that intercept HTTP requests to apply va
 
 These filters form the security filter chain, and understanding their purpose helps in customizing Spring Security behavior effectively.
 
-### Disabling Default Security
+### 2. Disabling Default Security
 Spring Security secures all endpoints by default when added to your classpath. You can disable this behavior to allow unrestricted access or customize it as needed.
 
 - **Spring Boot 2.x (using WebSecurityConfigurerAdapter):**
@@ -69,7 +69,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 ```
 
 
-### 1. **Authentication**
+### 3. **Authentication**
 The process of verifying the identity of a user.
 - **Username/Password-based login**
 - **Token-based (JWT)**
@@ -95,7 +95,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 ```
 
-### 2. **Authorization**
+### 4. **Authorization**
 Deciding whether a user has permission to perform an action.
 
 #### Annotations:
@@ -111,13 +111,7 @@ public String adminPage() {
 }
 ```
 
-### 3. **Filters and Filter Chain**
-Spring Security uses a filter chain to apply security.
-- `UsernamePasswordAuthenticationFilter`
-- `BasicAuthenticationFilter`
-- `OncePerRequestFilter`
-
-### 4. **SecurityContext and SecurityContextHolder**
+### 5. **SecurityContext and SecurityContextHolder**
 Holds security-related information of the current execution thread.
 ```java
 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
