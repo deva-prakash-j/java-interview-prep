@@ -326,6 +326,12 @@ This exposes endpoints like:
 
 ## 🔒 10. Best Practices
 
+- Use DTOs to avoid exposing entities.
+- Prefer constructor injection over field injection.
+- Use `@Transactional` at the service layer.
+- Split read/write transactions when using CQRS.
+- Consider Spring Data JDBC for lightweight scenarios.
+
 ---
 
 ## 🧾 Transaction Concepts and Isolation Levels
@@ -374,14 +380,6 @@ Defines how methods behave when called within an existing transaction:
 - Use `readOnly = true` for queries to allow optimization by some databases.
 - Isolation level choice depends on consistency needs vs performance.
 - Use nested transactions only with supported databases and JDBC drivers.
-
----
-
-- Use DTOs to avoid exposing entities.
-- Prefer constructor injection over field injection.
-- Use `@Transactional` at the service layer.
-- Split read/write transactions when using CQRS.
-- Consider Spring Data JDBC for lightweight scenarios.
 
 ---
 
