@@ -366,7 +366,110 @@ Defines how methods behave when called within an existing transaction:
 
 ---
 
-## 💼 11. Programmatic Data Management in a Banking System
+## 🕵️ 12. Auditing, Caching, DDL and ID Strategies
+
+### 🔍 Auditing in Spring Data JPA
+Spring Data JPA provides a way to track creation and modification details with the help of auditing annotations.
+
+#### Common Annotations
+| Annotation | Description |
+|-----------|-------------|
+| `@CreatedDate` | Marks the field to store the creation timestamp |
+| `@LastModifiedDate` | Stores the timestamp of the last update |
+| `@CreatedBy` | Stores the user who created the entity |
+| `@LastModifiedBy` | Stores the user who last modified the entity |
+
+#### Setup
+```java
+@Configuration
+@EnableJpaAuditing
+public class AuditConfig {
+}
+```
+
+```java
+@EntityListeners(AuditingEntityListener.class)
+@Entity
+public class AuditableEntity {
+
+    @CreatedDate
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate
+    private LocalDateTime lastModifiedDate;
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String modifiedBy;
+}
+```
+
+---
+
+### 🚀 Caching in the Data Layer
+Spring supports caching at various levels using `@EnableCaching` and cache abstraction APIs.
+
+#### Setup
+```java
+@Configuration
+@EnableCaching
+public class CacheConfig {
+}
+```
+
+#### Usage
+```java
+@Cacheable("users")
+public User getUserById(Long id) {
+    return userRepository.findById(id).orElse(null);
+}
+
+@CacheEvict("users")
+public void deleteUser(Long id) {
+    userRepository.deleteById(id);
+}
+```
+
+---
+
+### 🧱 Hibernate DDL Auto Strategies
+The `spring.jpa.hibernate.ddl-auto` property controls schema generation:
+
+| Value | Description |
+|-------|-------------|
+| `none` | No changes to DB |
+| `validate` | Validate schema against entities |
+| `update` | Update schema automatically |
+| `create` | Drops and re-creates schema each time |
+| `create-drop` | Drops schema on shutdown |
+
+Use `validate` or `none` in production.
+
+---
+
+### 🧮 ID Generation Strategies
+JPA provides multiple strategies for ID generation via `@GeneratedValue`:
+
+| Strategy | Description |
+|----------|-------------|
+| `AUTO` | Default; uses DB-specific strategy |
+| `IDENTITY` | Uses DB auto-increment |
+| `SEQUENCE` | Uses sequence object (for PostgreSQL, Oracle, etc.) |
+| `TABLE` | Uses a table to simulate sequence generation |
+
+#### Example
+```java
+@Id
+@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
+@SequenceGenerator(name = "user_seq", sequenceName = "user_sequence", allocationSize = 1)
+private Long id;
+```
+
+---
+
+## 💼 13. Programmatic Data Management in a Banking System
 
 In addition to declarative transactions, Spring allows fine-grained control over transactions using programmatic approaches. This is useful for complex business logic, conditional rollbacks, or nested transactions.
 
