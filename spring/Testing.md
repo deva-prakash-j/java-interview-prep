@@ -5,7 +5,7 @@ Testing is an integral part of software development, and with Spring Boot's powe
 ---
 
 ## 🧩 Table of Contents
-1. [Introduction](#introduction)
+1. [Introduction](#-introduction)
 2. [Types of Tests](#types-of-tests)
 3. [Setting up Testing Dependencies](#setting-up-testing-dependencies)
 4. [JUnit 5 vs JUnit 4 Annotations and Compatibility](#️junit-5-vs-junit-4-annotations-and-compatibility)
