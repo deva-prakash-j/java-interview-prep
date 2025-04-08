@@ -1,6 +1,6 @@
 # Spring Core Concepts - A Comprehensive Guide
 
-Spring Framework is one of the most powerful and widely used frameworks in the Java ecosystem. It provides comprehensive infrastructure support for developing Java applications. Let's walk through the core concepts of Spring from the ground up to an expert level, tailored for a developer with 20+ years of experience.
+Spring Framework is one of the most powerful and widely used frameworks in the Java ecosystem. It provides comprehensive infrastructure support for developing Java applications. Let's walk through the core concepts of Spring from the ground up to an expert level.
 
 ---
 
@@ -875,7 +875,7 @@ You can also programmatically customize the embedded server using `WebServerFact
 ---
 
 ## Conclusion
-Spring Core is the backbone of the entire Spring ecosystem. Mastering these concepts allows developers to build modular, maintainable, and testable applications. With 20+ years of experience, understanding how Spring orchestrates all these components under the hood gives a strategic edge in architecting modern Java applications.
+Spring Core is the backbone of the entire Spring ecosystem. Mastering these concepts allows developers to build modular, maintainable, and testable applications. Understanding how Spring orchestrates all these components under the hood gives a strategic edge in architecting modern Java applications.
 
 For advanced Spring topics, one should delve into:
 - Spring Boot auto-configuration internals
