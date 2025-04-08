@@ -56,10 +56,6 @@ public class Car {
 }
 ```
 
-@Component
-public class Engine {}
-```
-
 ---
 
 ## 2. **Dependency Injection (DI)**
