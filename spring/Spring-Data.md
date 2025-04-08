@@ -1,37 +1,22 @@
-# JPA and Hibernate in Spring Boot: A Comprehensive Guide
+# Spring Data in Spring Boot: A Comprehensive Guide
 
-This document explores Java Persistence API (JPA) and Hibernate within the context of Spring Boot. It spans beginner to expert-level concepts, including configuration, mappings, transaction management, and advanced topics like multi-datasource management and performance tuning.
-
----
-
-## 📌 Table of Contents
-1. [Introduction to JPA and Hibernate](#1-introduction-to-jpa-and-hibernate)
-2. [Spring Boot JPA Configuration](#2-spring-boot-jpa-configuration)
-3. [Entity Mappings](#3-entity-mappings)
-    - [@Entity, @Table, and @Id](#entity-table-and-id)
-    - [@Column, @Embedded, and @Embeddable](#column-embedded-and-embeddable)
-    - [Relationships: @OneToOne, @OneToMany, etc.](#relationships-onetoone-onetomany-etc)
-4. [Repositories](#4-repositories)
-5. [Custom Queries: JPQL and Native](#5-custom-queries-jpql-and-native)
-6. [Transaction Management](#6-transaction-management)
-7. [ACID and Isolation Levels](#7-acid-and-isolation-levels)
-8. [Advanced Topics](#8-advanced-topics)
-    - [Multiple Datasource Support](#multiple-datasource-support)
-    - [Batch Inserts and Updates](#batch-inserts-and-updates)
-    - [Optimistic vs Pessimistic Locking](#optimistic-vs-pessimistic-locking)
-    - [Hibernate Caching](#hibernate-caching)
-    - [Auditing with Envers or Spring Data](#auditing-with-envers-or-spring-data)
-    - [Entity Lifecycle Callbacks](#entity-lifecycle-callbacks)
-    - [DDL Auto Strategies](#ddl-auto-strategies)
+Spring Data is a part of the larger Spring ecosystem that aims to simplify data access and persistence. It provides a consistent and robust way to interact with various data stores, whether relational (like MySQL, PostgreSQL) or non-relational (like MongoDB, Redis). When integrated with Spring Boot, it offers auto-configuration and starter dependencies to minimize boilerplate code.
 
 ---
 
-## 1. Introduction to JPA and Hibernate
+## 🔰 1. Core Modules of Spring Data
 
-- **JPA**: A Java specification for ORM. Abstracts persistence logic.
-- **Hibernate**: A JPA implementation. Adds features like caching, lazy loading, HQL.
+- **Spring Data JPA**: Provides JPA-based repository support.
+- **Spring Data MongoDB**: Support for MongoDB.
+- **Spring Data Redis**: Support for Redis.
+- **Spring Data JDBC**: Lightweight alternative to JPA.
+- **Spring Data REST**: Exposes repositories as REST endpoints automatically.
 
-Spring Boot uses **Spring Data JPA** to simplify integration:
+---
+
+## 🛠️ 2. Basic Setup with Spring Boot
+
+### Maven Dependency
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
@@ -40,254 +25,380 @@ Spring Boot uses **Spring Data JPA** to simplify integration:
 <dependency>
     <groupId>com.h2database</groupId>
     <artifactId>h2</artifactId>
-    <scope>runtime</scope>
 </dependency>
 ```
 
----
-
-## 2. Spring Boot JPA Configuration
-
-`application.yml` or `application.properties`
-```yaml
-spring:
-  datasource:
-    url: jdbc:h2:mem:testdb
-    username: sa
-    password:
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+### Application Properties
+```properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
 ```
 
 ---
 
-## 3. Entity Mappings
+## 🧩 3. Entity Mapping
 
-### Entity, Table and Id
+### Entity Class
 ```java
 @Entity
-@Table(name = "employees")
-public class Employee {
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
-    private String department;
-}
-```
 
-### Column, Embedded, and Embeddable
-```java
-@Embeddable
-public class Address {
-    private String city;
-    private String state;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Order> orders = new ArrayList<>();
 }
 
 @Entity
-public class Office {
-    @Id @GeneratedValue
-    private Long id;
-
-    @Embedded
-    private Address address;
-}
-```
-
-### Relationships: @OneToOne, @OneToMany, etc.
-```java
-@Entity
-public class Department {
+public class Order {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Employee> employees;
-}
+    private String product;
 
-@Entity
-public class Employee {
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Department department;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }
 ```
 
+### Common JPA Annotations for Entity Classes
+
+| Annotation | Description | Example |
+|------------|-------------|---------|
+| `@Entity` | Specifies that the class is an entity and is mapped to a database table. | `@Entity public class User {}` |
+| `@Table` | Specifies the table name. | `@Table(name = "users")` |
+| `@Id` | Specifies the primary key. | `@Id private Long id;` |
+| `@GeneratedValue` | Specifies the primary key generation strategy. | `@GeneratedValue(strategy = GenerationType.IDENTITY)` |
+| `@Column` | Defines column mapping and constraints. | `@Column(name = "username", nullable = false)` |
+| `@OneToOne` | Defines a one-to-one relationship. | `@OneToOne @JoinColumn(name = "profile_id") private Profile profile;` |
+| `@OneToMany` | Defines a one-to-many relationship. | `@OneToMany(mappedBy = "user")` |
+| `@ManyToOne` | Defines a many-to-one relationship. | `@ManyToOne @JoinColumn(name = "user_id")` |
+| `@ManyToMany` | Defines a many-to-many relationship. | `@ManyToMany @JoinTable(...)` |
+| `@JoinColumn` | Specifies the foreign key column. | `@JoinColumn(name = "user_id")` |
+| `@JoinTable` | Defines the join table for many-to-many. | `@JoinTable(name = "user_role", joinColumns = ..., inverseJoinColumns = ...)` |
+| `@Lob` | Maps a large object (e.g., BLOB or CLOB). | `@Lob private String description;` |
+| `@Enumerated` | Maps enums to the database. | `@Enumerated(EnumType.STRING)` |
+| `@Temporal` | Specifies temporal data types for `Date`. | `@Temporal(TemporalType.TIMESTAMP)` |
+| `@Transient` | Marks a field as non-persistent. | `@Transient private int temp;` |
+| `@Version` | For optimistic locking. | `@Version private int version;` |
+| `@Embedded` | Embeds a value type object. | `@Embedded private Address address;` |
+| `@Embeddable` | Marks a class to be embedded. | `@Embeddable public class Address {}` |
+
 ---
 
-## 4. Repositories
+## 📦 4. Repository Layer
+
 ```java
-@Repository
-public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-    List<Employee> findByDepartment(String department);
+public interface UserRepository extends JpaRepository<User, Long> {
+    List<User> findByNameContaining(String keyword);
+}
+
+public interface OrderRepository extends JpaRepository<Order, Long> {
+    List<Order> findByUserId(Long userId);
 }
 ```
 
----
+### Default Repository Method Naming Conventions
 
-## 5. Custom Queries: JPQL and Native
+| Method Name | Description | Example |
+|-------------|-------------|---------|
+| `findBy` | Fetches data by a field | `findByUsername(String username)` |
+| `findBy...And...` | Combines multiple conditions with AND | `findByFirstNameAndLastName(String fn, String ln)` |
+| `findBy...Or...` | Combines multiple conditions with OR | `findByFirstNameOrLastName(String fn, String ln)` |
+| `findBy...Between` | Range query | `findByAgeBetween(int start, int end)` |
+| `findBy...LessThan` | Less than comparison | `findBySalaryLessThan(double maxSalary)` |
+| `findBy...Like` | Pattern matching | `findByNameLike(String pattern)` |
+| `findBy...OrderBy...Asc/Desc` | Sorting results | `findByCityOrderByAgeDesc(String city)` |
+| `existsBy...` | Checks existence | `existsByEmail(String email)` |
+| `countBy...` | Returns count of records | `countByStatus(String status)` |
+| `deleteBy...` | Deletes by condition | `deleteByUsername(String username)` |
+
+### Custom Query Methods
+
+#### JPQL Example
 ```java
-@Query("SELECT e FROM Employee e WHERE e.department = :dept")
-List<Employee> findByDept(@Param("dept") String dept);
+@Query("SELECT u FROM User u WHERE u.email = ?1")
+User findByEmail(String email);
+```
 
-@Query(value = "SELECT * FROM employees WHERE department = ?1", nativeQuery = true)
-List<Employee> nativeFindByDept(String dept);
+#### Native Query Example
+```java
+@Query(value = "SELECT * FROM users WHERE status = ?1", nativeQuery = true)
+List<User> findByStatusNative(String status);
+```
+
+#### Using SpEL in Queries
+```java
+@Query("SELECT u FROM User u WHERE u.name = :#{#user.name}")
+List<User> findUsersWithName(@Param("user") User user);
+```
+
+#### Dynamic Sorting and Paging
+```java
+Page<User> findByStatus(String status, Pageable pageable);
+List<User> findByAgeGreaterThan(int age, Sort sort);
 ```
 
 ---
 
-## 6. Transaction Management
+## 🔄 5. Transaction Management
 
-Spring uses `@Transactional` for declarative transaction management.
+### Declarative Transactions
 ```java
 @Service
-public class EmployeeService {
+public class UserService {
+    @Autowired
+    private UserRepository userRepository;
+
     @Transactional
-    public void transferEmployee(Long empId, Long newDeptId) {
-        // load employee and department
-        // set department
-        // save employee
+    public void createUser(User user) {
+        userRepository.save(user);
+        // other transactional logic
     }
 }
 ```
 
-For programmatic transactions:
+### Programmatic Transactions
 ```java
-@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-public void someMethod() {
-    // isolated transaction
+@Autowired
+private PlatformTransactionManager transactionManager;
+
+public void manualTransaction() {
+    TransactionTemplate template = new TransactionTemplate(transactionManager);
+    template.execute(status -> {
+        // transactional logic here
+        return null;
+    });
 }
 ```
 
----
+## 🔀 6. Handling Multiple Transactions/DataSources
 
-## 7. ACID and Isolation Levels
+### Basic Setup for Multiple DataSources
 
-### ACID Properties
-- **Atomicity**: All operations in a transaction are treated as a single unit.
-- **Consistency**: Data is always in a valid state before and after the transaction.
-- **Isolation**: Concurrent transactions do not interfere.
-- **Durability**: Once committed, the transaction changes persist.
+#### application.properties
+```properties
+spring.datasource1.url=jdbc:mysql://localhost:3306/db1
+spring.datasource1.username=root
+spring.datasource1.password=secret
+spring.datasource1.driver-class-name=com.mysql.cj.jdbc.Driver
 
-Spring ensures ACID properties through `@Transactional` and integration with JPA.
+spring.datasource2.url=jdbc:mysql://localhost:3306/db2
+spring.datasource2.username=root
+spring.datasource2.password=secret
+spring.datasource2.driver-class-name=com.mysql.cj.jdbc.Driver
+```
 
-### Isolation Levels (from `javax.transaction.Transactional` or `org.springframework.transaction.annotation.Transactional`)
-- **DEFAULT**: Database default isolation.
-- **READ_UNCOMMITTED**: Dirty reads possible.
-- **READ_COMMITTED**: Prevents dirty reads.
-- **REPEATABLE_READ**: Prevents non-repeatable reads.
-- **SERIALIZABLE**: Highest level, full isolation.
-
+### Multiple DataSources Configuration
 ```java
-@Transactional(isolation = Isolation.REPEATABLE_READ)
-public void updateAccount() {
+@Configuration
+public class DataSourceConfig {
+
+    @Bean(name = "dataSource1")
+    @Primary
+    @ConfigurationProperties("spring.datasource1")
+    public DataSource dataSource1() {
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean(name = "dataSource2")
+    @ConfigurationProperties("spring.datasource2")
+    public DataSource dataSource2() {
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean(name = "transactionManager1")
+    public PlatformTransactionManager transactionManager1(
+            @Qualifier("dataSource1") DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+    @Bean(name = "transactionManager2")
+    public PlatformTransactionManager transactionManager2(
+            @Qualifier("dataSource2") DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+}
+```
+
+### Using Specific Transaction Manager
+```java
+@Transactional("transactionManager1")
+public void serviceMethod() {
     // logic here
 }
 ```
 
-Choose based on the use case:
-- For analytics: `READ_COMMITTED`
-- For financial apps: `REPEATABLE_READ` or `SERIALIZABLE`
+---
+
+## 📊 7. Projections and DTOs
+
+### Interface-Based Projection
+```java
+public interface UserNameOnly {
+    String getName();
+}
+
+List<UserNameOnly> findBy();
+```
+
+### DTO Projection
+```java
+public class UserDTO {
+    private String name;
+    private int orderCount;
+
+    public UserDTO(String name, int orderCount) {
+        this.name = name;
+        this.orderCount = orderCount;
+    }
+}
+
+@Query("SELECT new com.example.UserDTO(u.name, size(u.orders)) FROM User u")
+List<UserDTO> fetchUserStats();
+```
 
 ---
 
-## 8. Advanced Topics
+## 🚀 8. Advanced JPA Features
 
-### Multiple Datasource Support
-```yaml
-spring:
-  datasource:
-    primary:
-      url: jdbc:mysql://...
-    secondary:
-      url: jdbc:postgresql://...
-```
+- **Entity Graphs**: Fetch strategies
+- **Query By Example (QBE)**
+- **Specifications**: For dynamic queries
+
+### Example: Specifications
 ```java
-@Configuration
-@EnableTransactionManagement
-@EnableJpaRepositories(
-    basePackages = "com.example.primary",
-    entityManagerFactoryRef = "primaryEntityManager",
-    transactionManagerRef = "primaryTransactionManager")
-public class PrimaryDbConfig { ... }
+public class UserSpecifications {
+    public static Specification<User> hasName(String name) {
+        return (root, query, cb) -> cb.equal(root.get("name"), name);
+    }
+}
+
+userRepository.findAll(UserSpecifications.hasName("Alice"));
 ```
 
-### Batch Inserts and Updates
-```yaml
-spring.jpa.properties.hibernate.jdbc.batch_size: 30
-spring.jpa.properties.hibernate.order_inserts: true
-```
+---
 
-### Optimistic vs Pessimistic Locking
-```java
-@Version
-private int version;
+## 📡 9. Spring Data REST
 
-@Lock(LockModeType.PESSIMISTIC_WRITE)
-Employee findById(Long id);
-```
-
-### Hibernate Caching
 ```xml
 <dependency>
-    <groupId>org.ehcache</groupId>
-    <artifactId>ehcache</artifactId>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-rest</artifactId>
 </dependency>
 ```
+
 ```java
-@Cacheable("employees")
-public Employee findEmployee(Long id);
+@RepositoryRestResource
+public interface UserRepository extends JpaRepository<User, Long> {}
 ```
 
-### Auditing with Envers or Spring Data
-```java
-@EnableJpaAuditing
-@Configuration
-public class AuditingConfig {}
-
-@EntityListeners(AuditingEntityListener.class)
-public class Employee {
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-}
-```
-
-### Entity Lifecycle Callbacks
-```java
-@PrePersist
-void beforeSave() {
-    createdAt = LocalDateTime.now();
-}
-```
-
-### DDL Auto Strategies
-- `none`: Don’t touch DB
-- `validate`: Validate schema
-- `update`: Update schema (risky in prod)
-- `create`: Drop/create tables
-- `create-drop`: Same as create, but drop at shutdown
+This exposes endpoints like:
+- `GET /users`
+- `POST /users`
 
 ---
 
-## ✅ Conclusion
+## 🔒 10. Best Practices
 
-Spring Boot with JPA and Hibernate provides a powerful abstraction over database operations. Mastery of both basic and advanced features allows you to build robust, scalable applications with transactional integrity, performance tuning, and auditability.
-
-> Best practices:
-> - Use `@Transactional` carefully.
-> - Avoid `DDL-auto=update` in production.
-> - Prefer JPQL for portability, native SQL for performance.
-> - Test entity mappings thoroughly.
+- Use DTOs to avoid exposing entities.
+- Prefer constructor injection over field injection.
+- Use `@Transactional` at the service layer.
+- Split read/write transactions when using CQRS.
+- Consider Spring Data JDBC for lightweight scenarios.
 
 ---
 
-Need an example project with these configurations and patterns? Just ask!
+## 💼 11. Programmatic Data Management in a Banking System
+
+In addition to declarative transactions, Spring allows fine-grained control over transactions using programmatic approaches. This is useful for complex business logic, conditional rollbacks, or nested transactions.
+
+### Example Domain: Banking System
+We'll define a `BankAccount` entity and demonstrate transactional money transfer logic.
+
+### Entity Class
+```java
+@Entity
+public class BankAccount {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String accountNumber;
+
+    private double balance;
+}
+```
+
+### Repository Interface
+```java
+public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {
+    Optional<BankAccount> findByAccountNumber(String accountNumber);
+}
+```
+
+### Service Layer with Programmatic Transaction Management
+```java
+@Service
+public class BankingService {
+
+    private final BankAccountRepository repository;
+    private final PlatformTransactionManager transactionManager;
+
+    public BankingService(BankAccountRepository repository, PlatformTransactionManager transactionManager) {
+        this.repository = repository;
+        this.transactionManager = transactionManager;
+    }
+
+    public void transfer(String fromAccount, String toAccount, double amount) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.execute(status -> {
+            BankAccount sender = repository.findByAccountNumber(fromAccount)
+                    .orElseThrow(() -> new RuntimeException("Sender not found"));
+
+            BankAccount receiver = repository.findByAccountNumber(toAccount)
+                    .orElseThrow(() -> new RuntimeException("Receiver not found"));
+
+            if (sender.getBalance() < amount) {
+                throw new RuntimeException("Insufficient funds");
+            }
+
+            sender.setBalance(sender.getBalance() - amount);
+            receiver.setBalance(receiver.getBalance() + amount);
+
+            repository.save(sender);
+            repository.save(receiver);
+
+            return null;
+        });
+    }
+}
+```
+
+### Available TransactionTemplate Methods
+
+| Method | Description |
+|--------|-------------|
+| `execute(TransactionCallback<T>)` | Executes the transactional code and commits or rolls back depending on exceptions. |
+| `setIsolationLevel(int)` | Sets isolation level for the transaction. |
+| `setTimeout(int)` | Timeout in seconds. |
+| `setReadOnly(boolean)` | Marks the transaction as read-only. |
+
+### Advanced Transaction Configurations
+
+- **Nested Transactions**: Supported only if the underlying platform supports it (e.g., with savepoints).
+- **Rollback Rules**:
+```java
+@Transactional(rollbackFor = {CustomException.class}, noRollbackFor = {IgnoredException.class})
+```
+- **Propagation Options**: Like `REQUIRES_NEW`, `NESTED`, `SUPPORTS`, etc., can be configured using `@Transactional(propagation = Propagation.REQUIRES_NEW)`
 
