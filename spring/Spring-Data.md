@@ -44,7 +44,7 @@ spring.jpa.show-sql=true
 
 ## 🧩 3. Entity Mapping
 
-### Entity Class
+### 3.1 Entity Class
 
 ```java
 @Entity
@@ -96,6 +96,156 @@ public class Order {
 | `@Embedded`       | Embeds a value type object.                                              | `@Embedded private Address address;`                                          |
 | `@Embeddable`     | Marks a class to be embedded.                                            | `@Embeddable public class Address {}`                                         |
 
+### 3.2 Understanding Entity Relationships in JPA
+
+JPA provides annotations to define relationships between entities. Understanding these relationships is crucial for designing normalized and connected data models.
+
+### 🔁 One-to-One
+Each entity instance is related to only one instance of another entity.
+
+```java
+@Entity
+public class Profile {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String bio;
+
+    @OneToOne(mappedBy = "profile")
+    private User user;
+}
+
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToOne
+    @JoinColumn(name = "profile_id")
+    private Profile profile;
+}
+```
+
+### 🔁 One-to-Many and Many-to-One
+A single entity is related to many entities, and those entities point back to the parent.
+
+```java
+@Entity
+public class Department {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToMany(mappedBy = "department")
+    private List<Employee> employees;
+}
+
+@Entity
+public class Employee {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
+}
+```
+
+### 🔁 Many-to-Many
+Both entities reference many instances of each other using a join table.
+
+```java
+@Entity
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @ManyToMany
+    @JoinTable(
+        name = "student_course",
+        joinColumns = @JoinColumn(name = "student_id"),
+        inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private List<Course> courses;
+}
+
+@Entity
+public class Course {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String title;
+
+    @ManyToMany(mappedBy = "courses")
+    private List<Student> students;
+}
+```
+
+These annotations manage foreign key constraints and help Hibernate manage joins effectively. Always consider the cardinality and direction when designing relationships.
+
+### ⚙️ Fetch Types in JPA
+
+JPA provides two fetch types:
+
+| Fetch Type | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `LAZY`     | Loads related entities on demand (default for `@OneToMany`, `@ManyToMany`) |
+| `EAGER`    | Loads related entities immediately (default for `@OneToOne`, `@ManyToOne`) |
+
+#### Example:
+```java
+@OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+private List<Order> orders;
+
+@ManyToOne(fetch = FetchType.EAGER)
+@JoinColumn(name = "user_id")
+private User user;
+```
+
+> **Best Practice**: Prefer `LAZY` loading by default and use fetch joins when eager loading is required to avoid N+1 problems.
+
+
+### Entity Class
+
+```java
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Order> orders = new ArrayList<>();
+}
+
+@Entity
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String product;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+}
+```
 ---
 
 ## 📦 4. Repository Layer
@@ -326,12 +476,6 @@ This exposes endpoints like:
 
 ## 🔒 10. Best Practices
 
-- Use DTOs to avoid exposing entities.
-- Prefer constructor injection over field injection.
-- Use `@Transactional` at the service layer.
-- Split read/write transactions when using CQRS.
-- Consider Spring Data JDBC for lightweight scenarios.
-
 ---
 
 ## 🧾 Transaction Concepts and Isolation Levels
@@ -380,6 +524,14 @@ Defines how methods behave when called within an existing transaction:
 - Use `readOnly = true` for queries to allow optimization by some databases.
 - Isolation level choice depends on consistency needs vs performance.
 - Use nested transactions only with supported databases and JDBC drivers.
+
+---
+
+- Use DTOs to avoid exposing entities.
+- Prefer constructor injection over field injection.
+- Use `@Transactional` at the service layer.
+- Split read/write transactions when using CQRS.
+- Consider Spring Data JDBC for lightweight scenarios.
 
 ---
 
@@ -807,7 +959,69 @@ This approach dynamically includes or excludes soft-deleted records in queries.
 
 ---
 
-## 💼 15. Programmatic Data Management in a Banking System
+## 📐 15. Criteria API in JPA
+
+The Criteria API allows the construction of type-safe and dynamic queries at runtime using Java code instead of JPQL or SQL strings.
+
+### 🔍 Why Use Criteria API?
+- Compile-time safety
+- Easy to build dynamic queries
+- Avoids syntax errors in JPQL/SQL
+- Good for complex queries based on user input
+
+### 🧩 Core Interfaces
+
+| Interface/Class | Purpose |
+|-----------------|---------|
+| `CriteriaBuilder` | Used to construct criteria queries, expressions, predicates. |
+| `CriteriaQuery<T>` | Represents a query object. |
+| `Root<T>` | Represents query root for entity. |
+| `Predicate` | Represents conditions (like WHERE clauses). |
+
+### ✨ Example: Find Users by Name and Email
+
+```java
+@PersistenceContext
+private EntityManager entityManager;
+
+public List<User> findUsers(String name, String email) {
+    CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+    CriteriaQuery<User> query = cb.createQuery(User.class);
+    Root<User> root = query.from(User.class);
+
+    List<Predicate> predicates = new ArrayList<>();
+    if (name != null) {
+        predicates.add(cb.equal(root.get("name"), name));
+    }
+    if (email != null) {
+        predicates.add(cb.equal(root.get("email"), email));
+    }
+
+    query.select(root).where(cb.and(predicates.toArray(new Predicate[0])));
+
+    return entityManager.createQuery(query).getResultList();
+}
+```
+
+### 🛠️ Common CriteriaBuilder Methods
+
+| Method | Description |
+|--------|-------------|
+| `cb.equal(path, value)` | Creates equality condition |
+| `cb.like(path, pattern)` | LIKE condition |
+| `cb.and(pred1, pred2)` | Logical AND |
+| `cb.or(pred1, pred2)` | Logical OR |
+| `cb.between(path, start, end)` | Range check |
+| `cb.greaterThan(path, value)` | Greater than check |
+| `cb.lessThan(path, value)` | Less than check |
+| `cb.isNull(path)` | IS NULL check |
+| `cb.isNotNull(path)` | IS NOT NULL check |
+| `cb.orderBy(cb.asc(path))` | Sorting ascending |
+| `cb.orderBy(cb.desc(path))` | Sorting descending |
+
+---
+
+## 💼 16. Programmatic Data Management in a Banking System
 
 In addition to declarative transactions, Spring allows fine-grained control over transactions using programmatic approaches. This is useful for complex business logic, conditional rollbacks, or nested transactions.
 
