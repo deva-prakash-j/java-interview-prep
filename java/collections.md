@@ -33,9 +33,9 @@ Below is a revised, properly formatted Table of Contents for the complete Markdo
 6. [Summary of Iterators](#summary-of-iterators)
 
 ## Java Collections: Comparator, Immutable, and Concurrent Collections
-1. [Comparator and Comparable](#comparator-and-comparable)
-2. [Immutable and Unmodifiable Collections](#immutable-and-unmodifiable-collections)
-3. [Concurrent Collections](#concurrent-collections)
+1. [Comparator and Comparable](#1-comparator-and-comparable)
+2. [Immutable and Unmodifiable Collections](#2-immutable-and-unmodifiable-collections)
+3. [Concurrent Collections](#3-concurrent-collections)
 
 ---
 
