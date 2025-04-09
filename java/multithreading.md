@@ -1,7 +1,3 @@
-Below is a comprehensive Markdown document covering Java threading concepts, complete with explanations, code samples, tables, diagrams, and interview questions. You can copy this Markdown into your documentation or learning resources.
-
----
-
 # Java Threads: A Comprehensive Guide
 
 This guide covers the fundamentals of Java threading—from thread basics to advanced concurrent programming concepts—with detailed explanations, real-world examples, code snippets, and interview questions.
