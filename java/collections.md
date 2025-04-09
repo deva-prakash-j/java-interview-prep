@@ -4,9 +4,13 @@ Java Collections is a unified architecture that represents and manipulates group
 
 ---
 
-## Table of Contents
+Below is a revised, properly formatted Table of Contents for the complete Markdown document. You can paste this at the top of your document for easy navigation.
 
-# Basic Collections
+---
+
+# Table of Contents
+
+## Basic Collections
 1. [What Are Collections?](#what-are-collections)
 2. [Collections Interface Hierarchy](#collections-interface-hierarchy)
 3. [Core Interfaces and Implementations](#core-interfaces-and-implementations)
@@ -26,7 +30,16 @@ Java Collections is a unified architecture that represents and manipulates group
 3. [Fail-Fast vs Fail-Safe Iterators](#fail-fast-vs-fail-safe-iterators)
 4. [Spliterator Overview](#spliterator-overview)
 5. [Spliterator Usage and Examples](#spliterator-usage-and-examples)
-6. [Summary](#summary)
+6. [Summary of Iterators](#summary-of-iterators)
+
+## Java Collections: Comparator, Immutable, and Concurrent Collections
+1. [Comparator and Comparable](#comparator-and-comparable)
+2. [Immutable and Unmodifiable Collections](#immutable-and-unmodifiable-collections)
+3. [Concurrent Collections](#concurrent-collections)
+
+---
+
+This structured Table of Contents should help users quickly jump to any desired section in the document.
 
 ---
 
@@ -430,3 +443,194 @@ public class SpliteratorSplitExample {
 - **Spliterators**—introduced in Java 8—support both sequential and parallel traversal. They can be split into multiple parts, making them ideal for parallel processing using streams or fork-join frameworks.
 
 ---
+
+# Java Collections: Comparator, Immutable, and Concurrent Collections
+
+
+## 1. Comparator and Comparable
+
+In Java, these two interfaces are used to provide ordering semantics for objects.
+
+### Comparable
+
+- **Purpose**:  
+  Implemented by a class to define its **natural ordering** via a single method—`compareTo()`.
+  
+- **Example**: Sorting persons by age.
+
+```java
+public class Person implements Comparable<Person> {
+    private String name;
+    private int age;
+
+    public Person(String name, int age) {
+       this.name = name;
+       this.age = age;
+    }
+    
+    @Override
+    public int compareTo(Person other) {
+       // Compare by age
+       return Integer.compare(this.age, other.age);
+    }
+    
+    @Override
+    public String toString() {
+       return name + " (" + age + ")";
+    }
+    
+    // Getters and setters (if needed)
+}
+```
+
+*Usage*: Now you can sort a list of `Person` objects naturally by age.
+
+```java
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class ComparableDemo {
+    public static void main(String[] args) {
+        List<Person> people = new ArrayList<>();
+        people.add(new Person("Alice", 30));
+        people.add(new Person("Bob", 25));
+        people.add(new Person("Charlie", 35));
+
+        // Sort using natural order (by age)
+        Collections.sort(people);
+        System.out.println(people);
+    }
+}
+```
+
+### Comparator
+
+- **Purpose**:  
+  The `Comparator<T>` interface is used to define **custom ordering**. Multiple comparators may be created for the same class, and they are particularly useful if the natural ordering (i.e. via Comparable) is not what you need.
+  
+- **Example**: Sorting persons by name with a lambda expression.
+
+```java
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+public class ComparatorDemo {
+    public static void main(String[] args) {
+        List<Person> people = new ArrayList<>();
+        people.add(new Person("Charlie", 35));
+        people.add(new Person("Alice", 30));
+        people.add(new Person("Bob", 25));
+
+        // Using a lambda to sort by name
+        Comparator<Person> byName = (p1, p2) -> p1.toString().split(" ")[0].compareTo(p2.toString().split(" ")[0]);
+        // Alternatively, using Comparator.comparing:
+        // Comparator<Person> byName = Comparator.comparing(Person::toString); // if toString returns name
+
+        people.sort(byName);
+        System.out.println(people);
+    }
+}
+```
+
+*Usage with Lambdas*:  
+Java 8 and later allow concise comparator definitions with lambda expressions or the static helper `Comparator.comparing()`:
+
+```java
+Comparator<Person> byName = Comparator.comparing(person -> person.toString().split(" ")[0]);
+```
+
+---
+
+## 2. Immutable and Unmodifiable Collections
+
+### Immutable Collections
+
+Immutable collections are fixed after creation. Java 9+ provides factory methods that return truly immutable collections.
+
+- **Characteristics**:  
+  They cannot be modified after they are created. Any modification attempts will throw an exception.
+  
+- **Example**:  
+  Creating an immutable list:
+
+```java
+import java.util.List;
+
+public class ImmutableCollectionsDemo {
+    public static void main(String[] args) {
+        List<String> immutableList = List.of("Apple", "Banana", "Cherry");
+        
+        // immutableList.add("Date"); // This would throw UnsupportedOperationException
+        
+        System.out.println("Immutable List: " + immutableList);
+    }
+}
+```
+
+### Unmodifiable Collections
+
+Unmodifiable collections are **read-only views** of an existing collection. They are created using methods from the `Collections` class. However, if the underlying collection is modified, the changes will be visible in the unmodifiable view.
+
+- **Example**: Wrapping an existing list:
+
+```java
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class UnmodifiableCollectionsDemo {
+    public static void main(String[] args) {
+        List<String> modifiableList = new ArrayList<>();
+        modifiableList.add("Dog");
+        modifiableList.add("Cat");
+        
+        List<String> unmodifiableList = Collections.unmodifiableList(modifiableList);
+        
+        System.out.println("Unmodifiable List: " + unmodifiableList);
+        
+        // modifiableList.add("Elephant");  // Changes the underlying list and will be visible in unmodifiableList
+        // unmodifiableList.add("Giraffe");  // This will throw UnsupportedOperationException
+    }
+}
+```
+
+*Key Differences*:
+- **Immutable collections** are completely fixed after creation.
+- **Unmodifiable collections** are wrappers around mutable collections, offering a read-only view.
+
+---
+
+## 3. Concurrent Collections
+
+Concurrent collections are specialized data structures designed for high-throughput and thread-safe operations in concurrent environments. The table below lists the key concurrent collections, their usage, internal implementations (including notes on growth factors when relevant), advantages, disadvantages, and important methods.
+
+### Concurrent Collections Table
+
+| Implementation               | Usage / When to Use                                                     | Internal Implementation & Growth Factor                                                                                                | Advantages                                                  | Disadvantages                                           | Important Methods                                                   |
+|------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|---------------------------------------------------------|----------------------------------------------------------------------|
+| **ConcurrentHashMap**        | Thread-safe key-value storage for high concurrency; ideal for caching.  | Based on a hash table with non-blocking reads; uses CAS (compare-and-swap) and segmentation; capacity typically doubles on resize.     | High concurrency, non-blocking read operations; scales well. | Iterators are weakly consistent; does not allow null keys/values. | `put()`, `get()`, `remove()`, `computeIfAbsent()`, `forEach()`         |
+| **CopyOnWriteArrayList**     | Read-heavy scenarios where writes are infrequent.                     | Backed by an array; on each mutative operation, it creates a new copy of the underlying array; similar growth behavior as ArrayList.      | Safe for concurrent iteration without locks; no CMEs.     | High cost for modifications (write-intensive scenarios).    | `add()`, `get()`, `remove()`, `iterator()` (snapshot-based)            |
+| **CopyOnWriteArraySet**      | Thread-safe set with infrequent modifications; backed by CopyOnWriteArrayList. | Internally wraps a CopyOnWriteArrayList; uses array copying on write.                                                                    | Same benefits as CopyOnWriteArrayList; maintains uniqueness. | Same write cost as CopyOnWriteArrayList; more memory consumption. | `add()`, `remove()`, `contains()`, `iterator()`                        |
+| **ConcurrentLinkedQueue**    | Lock-free FIFO queue for high-throughput data exchange.                 | A linked node-based structure using CAS for non-blocking operations; unbounded queue.                                                  | High concurrency, non-blocking algorithm; lightweight.    | Unbounded (risk of memory issues if not managed correctly). | `offer()`, `poll()`, `peek()`, `size()`                                  |
+| **ConcurrentLinkedDeque**    | Lock-free double-ended queue for flexible FIFO and LIFO operations.     | Doubly-linked nodes supporting CAS operations; similar in design to ConcurrentLinkedQueue with additional endpoints.                      | Supports both ends; high throughput; non-blocking.          | Slightly more overhead compared to simple FIFO queues.    | `offerFirst()`, `offerLast()`, `pollFirst()`, `pollLast()`, `peekFirst()`, `peekLast()` |
+| **ConcurrentSkipListMap**    | Sorted, thread-safe Map for concurrent access with natural ordering.    | Implements a skip list data structure; logarithmic time performance for most operations; does not use traditional growth factors.          | Provides sorted order; good performance under concurrency.  | Slower than unsorted maps for non-sorted access; no null keys.  | `put()`, `get()`, `remove()`, `firstEntry()`, `ceilingEntry()`, `subMap()`  |
+| **ConcurrentSkipListSet**    | Thread-safe sorted Set based on ConcurrentSkipListMap.                  | Internally uses a ConcurrentSkipListMap; maintains sorted order; comparable to ConcurrentSkipListMap in behavior.                           | Retains order; supports high concurrency similar to SkipListMap. | Performance is tied to the underlying map; no null elements.   | `add()`, `remove()`, `contains()`, `iterator()`                          |
+
+*Note*: Growth factor details are typically more relevant to array-based collections (like CopyOnWriteArrayList) rather than linked or skip list–based collections.
+
+---
+
+## Summary
+
+- **Comparator and Comparable**:  
+  - Implement **Comparable** within your class to provide its natural order (using `compareTo()`), and use **Comparator** for alternative or multiple orderings.  
+  - Lambda expressions (e.g., via `Comparator.comparing()`) simplify the creation of comparators.
+
+- **Immutable vs Unmodifiable Collections**:  
+  - **Immutable Collections** (e.g., Java 9+ `List.of()`) are fixed and cannot be changed after creation.  
+  - **Unmodifiable Collections** (e.g., `Collections.unmodifiableList()`) provide a read-only view of an existing collection, though the underlying collection might still be mutable.
+
+- **Concurrent Collections**:  
+  - The table above lists popular concurrent collection classes with details on their internals, when and why to use them, advantages/disadvantages, and their critical methods.
