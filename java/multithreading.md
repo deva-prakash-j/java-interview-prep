@@ -1329,99 +1329,724 @@ This document provides explanations, rationale, and code examples for the most c
 
 ### Advanced Scenario Questions
 
-1. **Design a high-frequency trading system using virtual threads and atomic classes.**  
-   **Answer:**  
-   In such a system, thousands of concurrent tasks (e.g., processing trade orders) can be managed by virtual threads while using atomic classes to update shared counters (like trade volume) without locks. The design emphasizes low-latency, high throughput, and minimal context switching overhead.
+## 1. High-Frequency Trading System Using Virtual Threads and Atomic Classes
 
-2. **Implement distributed concurrency control using locks and synchronization.**  
-   **Answer:**  
-   Distributed systems might use a combination of local locks (for multi-threading) and distributed coordination (via Zookeeper or etcd) to manage shared resources across nodes. Code examples involve integrating distributed lock APIs with local Java concurrency mechanisms.
+In high-frequency trading, you need to handle a huge number of trade orders concurrently with minimal overhead. Virtual threads (available in recent Java versions) allow you to create many lightweight threads, and atomic classes (e.g., `AtomicInteger`) provide lock-free updates.
 
-3. **Create a fault-tolerant service using concurrent collections and the Executor framework.**  
-   **Answer:**  
-   Use a thread pool to process tasks and concurrent collections (e.g., `ConcurrentHashMap` for caching or tracking state) to ensure safe concurrent updates. Designing for fault tolerance includes monitoring task execution and handling exceptions gracefully.
+```java
+import java.util.concurrent.atomic.AtomicInteger;
 
-4. **Develop a real-time analytics dashboard using the Fork/Join framework.**  
-   **Answer:**  
-   The dashboard might process large volumes of data by breaking tasks into smaller units with RecursiveTasks and merging results. The framework’s work-stealing algorithm helps maintain performance under heavy loads.
+public class HighFrequencyTradingSystem {
 
-5. **Design a multi-layered scalable architecture with optimized thread management.**  
-   **Answer:**  
-   Such an architecture might combine virtual threads for I/O-bound tasks, dedicated thread pools for CPU-bound processing, and microservices to isolate functionality. Emphasis is placed on using asynchronous APIs, non-blocking I/O, and robust monitoring of thread states.
+    // Atomic counter to track processed trades
+    private static final AtomicInteger tradeCounter = new AtomicInteger(0);
 
-6. **Implement a concurrent data processing pipeline using Callable and Future.**  
-   **Answer:**  
-   Each stage of the pipeline can submit tasks to an ExecutorService that returns Futures. As results become available, downstream tasks process the data, ensuring asynchronous and parallel processing.
+    public static void processTrade(int tradeId) {
+        // Simulate trade processing logic
+        System.out.println("Processing trade: " + tradeId + " in " + Thread.currentThread());
+        try { 
+            Thread.sleep(100); // Simulate processing delay
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        tradeCounter.incrementAndGet();
+    }
 
-7. **Design a system for deadlock detection and resolution.**  
-   **Answer:**  
-   You can implement a deadlock detection thread that periodically analyzes thread states and lock dependencies using thread dump analysis. Resolution might involve forcibly breaking lock cycles or restarting affected subsystems.
+    public static void main(String[] args) {
+        // Launch 10 virtual threads to process trades concurrently.
+        for (int i = 1; i <= 10; i++) {
+            int tradeId = i;
+            Thread.startVirtualThread(() -> processTrade(tradeId));
+        }
+        // Allow time for virtual threads to finish
+        try { 
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        System.out.println("Total trades processed: " + tradeCounter.get());
+    }
+}
+```
 
-8. **Demonstrate the use of custom thread factories with ExecutorService.**  
-   **Answer & Example:**  
-   Custom thread factories allow you to set thread names, priorities, and daemon status.
-   ```java
-   import java.util.concurrent.*;
-   public class CustomThreadFactoryExample {
-       public static void main(String[] args) {
-           ThreadFactory customFactory = r -> {
-               Thread t = new Thread(r);
-               t.setName("CustomThread-" + t.getId());
-               return t;
-           };
-           ExecutorService executor = Executors.newFixedThreadPool(3, customFactory);
-           executor.execute(() -> System.out.println("Running " + Thread.currentThread().getName()));
-           executor.shutdown();
-       }
-   }
-   ```
+---
 
-9. **Implement a multi-threaded caching system using volatile variables and atomic classes.**  
-   **Answer:**  
-   A caching system might use a `volatile` reference to a shared cache (e.g., a `Map`) and atomic classes to update counters or timestamps for cache entries. Ensuring visibility without full locks enhances performance for read-mostly workloads.
+## 2. Distributed Concurrency Control Using Locks and Synchronization
 
-10. **Simulate a scenario showcasing starvation and ways to mitigate it.**  
-    **Answer:**  
-    Starvation can occur when high-priority threads monopolize CPU time. Mitigation techniques include using fair locks or adjusting thread priorities. A simulation might involve threads with different priorities repeatedly accessing a resource—using fair scheduling helps avoid starvation.
+This example simulates two nodes (threads) trying to access a shared resource. A `ReentrantLock` with a timeout is used to mimic distributed lock acquisition and to avoid indefinite blocking.
 
-11. **Design an application that uses inter-thread communication for collaborative processing.**  
-    **Answer:**  
-    Such an application may employ a producer/consumer model with multiple threads communicating via a `BlockingQueue`. Each thread processes portions of data and passes results along the pipeline.
+```java
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.TimeUnit;
 
-12. **Implement a producer-consumer model with multiple producers and consumers.**  
-    **Answer & Example:**  
-    Use a `BlockingQueue` which simplifies synchronization.
-    ```java
-    import java.util.concurrent.*;
-    public class MultiProducerConsumer {
-        public static void main(String[] args) {
-            BlockingQueue<Integer> queue = new ArrayBlockingQueue<>(10);
-            Runnable producer = () -> {
-                try { queue.put((int)(Math.random()*100)); } catch (InterruptedException e) { }
-            };
-            Runnable consumer = () -> {
-                try { System.out.println("Consumed: " + queue.take()); } catch (InterruptedException e) { }
-            };
-            ExecutorService executor = Executors.newFixedThreadPool(4);
-            for (int i = 0; i < 5; i++) {
-                executor.submit(producer);
-                executor.submit(consumer);
+public class DistributedLockSimulator {
+
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public void accessResource(String nodeName) {
+        try {
+            if (lock.tryLock(500, TimeUnit.MILLISECONDS)) {
+                try {
+                    System.out.println(nodeName + " acquired the lock and is accessing the resource.");
+                    Thread.sleep(1000); // Simulate resource usage
+                } finally {
+                    lock.unlock();
+                    System.out.println(nodeName + " released the lock.");
+                }
+            } else {
+                System.out.println(nodeName + " could not acquire the lock and will retry.");
             }
-            executor.shutdown();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
-    ```
 
-13. **Develop a stress-test for a high-load server using concurrent utilities.**  
-    **Answer:**  
-    A stress test would simulate many concurrent client requests using a thread pool, record throughput, and measure latency. Tools like `CountDownLatch` or `CyclicBarrier` can synchronize start times to simulate load peaks.
+    public static void main(String[] args) {
+        DistributedLockSimulator simulator = new DistributedLockSimulator();
+        Runnable nodeTask = () -> {
+            String nodeName = Thread.currentThread().getName();
+            simulator.accessResource(nodeName);
+        };
 
-14. **Integrate asynchronous processing with synchronous logging in a complex system.**  
-    **Answer:**  
-    The design can separate business logic from logging. Use asynchronous methods for processing while funneling log messages into a thread-safe logging queue processed by a dedicated logger thread, ensuring that slow I/O in logging doesn’t block core tasks.
+        Thread node1 = new Thread(nodeTask, "Node-1");
+        Thread node2 = new Thread(nodeTask, "Node-2");
 
-15. **Create a distributed task scheduler using virtual threads and Callable tasks.**  
-    **Answer:**  
-    In a distributed environment, each node can use virtual threads to execute scheduled Callable tasks that return results. A central coordinator distributes tasks across nodes and aggregates results. The design leverages low overhead virtual threads to handle high concurrency without heavy resource consumption.
+        node1.start();
+        node2.start();
+    }
+}
+```
 
+---
 
+## 3. Fault-Tolerant Service Using Concurrent Collections and the Executor Framework
+
+Fault tolerance is achieved by using a thread pool (via `ExecutorService`) and a concurrent collection (e.g., `ConcurrentHashMap`) to store results. In case of processing errors, a fallback mechanism is applied.
+
+```java
+import java.util.concurrent.*;
+
+public class FaultTolerantService {
+
+    private final ConcurrentHashMap<String, String> serviceCache = new ConcurrentHashMap<>();
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
+
+    public void processRequest(String requestId) {
+        executor.submit(() -> {
+            try {
+                // Simulate processing with a chance of failure
+                if (Math.random() < 0.3) {
+                    throw new RuntimeException("Simulated processing error");
+                }
+                String result = "Result for " + requestId;
+                serviceCache.put(requestId, result);
+                System.out.println("Processed " + requestId + ": " + result);
+            } catch (Exception e) {
+                System.err.println("Error processing " + requestId + ": " + e.getMessage());
+                // Apply fallback strategy
+                serviceCache.put(requestId, "Fallback result for " + requestId);
+            }
+        });
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        FaultTolerantService service = new FaultTolerantService();
+        for (int i = 1; i <= 10; i++) {
+            service.processRequest("Req-" + i);
+        }
+        service.executor.shutdown();
+        service.executor.awaitTermination(5, TimeUnit.SECONDS);
+        System.out.println("Service cache: " + service.serviceCache);
+    }
+}
+```
+
+---
+
+## 4. Real-Time Analytics Dashboard Using the Fork/Join Framework
+
+This example demonstrates parallel processing of a large dataset using a recursive task that splits the work—a common approach in real-time data analytics.
+
+```java
+import java.util.concurrent.*;
+
+public class RealTimeAnalyticsDashboard {
+
+    static class SumTask extends RecursiveTask<Long> {
+        private final long[] data;
+        private final int start, end;
+        private static final int THRESHOLD = 1000;
+
+        SumTask(long[] data, int start, int end) {
+            this.data = data;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        protected Long compute() {
+            if (end - start <= THRESHOLD) {
+                long sum = 0;
+                for (int i = start; i < end; i++) {
+                    sum += data[i];
+                }
+                return sum;
+            } else {
+                int mid = (start + end) / 2;
+                SumTask left = new SumTask(data, start, mid);
+                SumTask right = new SumTask(data, mid, end);
+                left.fork();
+                long rightResult = right.compute();
+                long leftResult = left.join();
+                return leftResult + rightResult;
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        int size = 10000;
+        long[] data = new long[size];
+        for (int i = 0; i < size; i++) {
+            data[i] = i;
+        }
+
+        ForkJoinPool pool = new ForkJoinPool();
+        SumTask task = new SumTask(data, 0, data.length);
+        long result = pool.invoke(task);
+        System.out.println("Real-time analytics result (sum): " + result);
+    }
+}
+```
+
+---
+
+## 5. Multi-Layered Scalable Architecture with Optimized Thread Management
+
+This example separates I/O-bound and CPU-bound tasks into different executors. In a real system, you might combine virtual threads for I/O tasks with a fixed thread pool for CPU-intensive work.
+
+```java
+import java.util.concurrent.*;
+
+public class ScalableArchitecture {
+
+    // Executor for I/O-bound tasks (using a cached thread pool)
+    private static final ExecutorService ioExecutor = Executors.newCachedThreadPool();
+    // Executor for CPU-bound tasks (fixed thread pool based on available processors)
+    private static final ExecutorService cpuExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+    public static void processIoTask(String taskId) {
+        ioExecutor.submit(() -> {
+            System.out.println("I/O task " + taskId + " processed by " + Thread.currentThread().getName());
+            try { 
+                Thread.sleep(200);
+            } catch (InterruptedException e) { 
+                Thread.currentThread().interrupt();
+            }
+        });
+    }
+
+    public static void processCpuTask(String taskId) {
+        cpuExecutor.submit(() -> {
+            System.out.println("CPU task " + taskId + " processed by " + Thread.currentThread().getName());
+            long sum = 0;
+            for (int i = 0; i < 1000000; i++) {
+                sum += i;
+            }
+            System.out.println("CPU task " + taskId + " result: " + sum);
+        });
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        for (int i = 1; i <= 5; i++) {
+            processIoTask("IO-" + i);
+            processCpuTask("CPU-" + i);
+        }
+        ioExecutor.shutdown();
+        cpuExecutor.shutdown();
+        ioExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        cpuExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        System.out.println("All tasks completed.");
+    }
+}
+```
+
+---
+
+## 6. Concurrent Data Processing Pipeline Using Callable and Future
+
+This pipeline example uses multiple stages. Each stage submits a task whose result is passed to the next stage, allowing asynchronous processing and coordination.
+
+```java
+import java.util.concurrent.*;
+
+public class DataProcessingPipeline {
+
+    public static void main(String[] args) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+
+        // Stage 1: Data fetching
+        Callable<String> stage1 = () -> {
+            Thread.sleep(500);
+            return "raw data";
+        };
+
+        // Stage 2: Data processing (depends on stage 1)
+        Callable<String> stage2 = () -> {
+            Future<String> stage1Future = executor.submit(stage1);
+            String rawData = stage1Future.get();
+            return rawData.toUpperCase();
+        };
+
+        // Stage 3: Data transformation (depends on stage 2)
+        Callable<String> stage3 = () -> {
+            Future<String> stage2Future = executor.submit(stage2);
+            String processedData = stage2Future.get();
+            return "Transformed: " + processedData;
+        };
+
+        Future<String> finalResult = executor.submit(stage3);
+        System.out.println("Pipeline result: " + finalResult.get());
+
+        executor.shutdown();
+    }
+}
+```
+
+---
+
+## 7. Deadlock Detection and Resolution System
+
+Here we use the `ThreadMXBean` to periodically check for deadlocks. In a real system, you might integrate notification and resolution strategies.
+
+```java
+import java.util.*;
+import java.lang.management.*;
+
+public class DeadlockDetector implements Runnable {
+
+    private final long checkInterval;
+
+    public DeadlockDetector(long checkInterval) {
+        this.checkInterval = checkInterval;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            detectDeadlock();
+            try {
+                Thread.sleep(checkInterval);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
+    private void detectDeadlock() {
+        ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+        long[] deadlockedThreadIds = bean.findDeadlockedThreads();
+        if (deadlockedThreadIds != null && deadlockedThreadIds.length > 0) {
+            System.err.println("Deadlock detected among threads: " + Arrays.toString(deadlockedThreadIds));
+            // Resolution strategy: log, alert, or attempt to break the cycle.
+        } else {
+            System.out.println("No deadlock detected.");
+        }
+    }
+
+    public static void main(String[] args) {
+        Thread detector = new Thread(new DeadlockDetector(2000), "DeadlockDetector");
+        detector.setDaemon(true);
+        detector.start();
+
+        // Simulate a deadlock scenario for testing.
+        final Object resource1 = new Object();
+        final Object resource2 = new Object();
+
+        Runnable task1 = () -> {
+            synchronized (resource1) {
+                try { Thread.sleep(100); } catch (InterruptedException e) { }
+                synchronized (resource2) {
+                    System.out.println("Task1 acquired both locks.");
+                }
+            }
+        };
+
+        Runnable task2 = () -> {
+            synchronized (resource2) {
+                try { Thread.sleep(100); } catch (InterruptedException e) { }
+                synchronized (resource1) {
+                    System.out.println("Task2 acquired both locks.");
+                }
+            }
+        };
+
+        new Thread(task1, "Task1").start();
+        new Thread(task2, "Task2").start();
+    }
+}
+```
+
+---
+
+## 8. Custom Thread Factories with ExecutorService
+
+Custom thread factories allow you to set thread names, daemon status, and priorities. This example shows a custom factory that names threads sequentially.
+
+```java
+import java.util.concurrent.*;
+
+public class CustomThreadFactoryExample {
+    public static void main(String[] args) {
+        ThreadFactory customFactory = new ThreadFactory() {
+            private int count = 0;
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, "CustomThread-" + (++count));
+                t.setDaemon(false);
+                return t;
+            }
+        };
+
+        ExecutorService executor = Executors.newFixedThreadPool(3, customFactory);
+        for (int i = 0; i < 5; i++) {
+            executor.submit(() -> {
+                System.out.println("Running on " + Thread.currentThread().getName());
+            });
+        }
+        executor.shutdown();
+    }
+}
+```
+
+---
+
+## 9. Multi-Threaded Caching System Using Volatile and Atomic Classes
+
+This example demonstrates a simple caching system that uses a volatile reference for the cache and an atomic update mechanism.
+
+```java
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class MultiThreadedCache {
+
+    // Volatile cache reference updated concurrently
+    private volatile ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
+    // Atomic reference (for demonstration) mirroring the cache updates.
+    private final AtomicReference<ConcurrentHashMap<String, String>> atomicCache =
+            new AtomicReference<>(new ConcurrentHashMap<>());
+
+    public String getValue(String key) {
+        return cache.get(key);
+    }
+
+    public void updateCache(String key, String value) {
+        cache.put(key, value);
+        atomicCache.get().put(key, value);
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        MultiThreadedCache myCache = new MultiThreadedCache();
+        Runnable writer = () -> {
+            for (int i = 0; i < 10; i++) {
+                myCache.updateCache("key-" + i, "value-" + i);
+                System.out.println("Updated key-" + i);
+                try { Thread.sleep(100); } catch (InterruptedException e) { }
+            }
+        };
+
+        Runnable reader = () -> {
+            for (int i = 0; i < 10; i++) {
+                System.out.println("Read key-" + i + ": " + myCache.getValue("key-" + i));
+                try { Thread.sleep(150); } catch (InterruptedException e) { }
+            }
+        };
+
+        Thread writerThread = new Thread(writer);
+        Thread readerThread = new Thread(reader);
+        writerThread.start();
+        readerThread.start();
+
+        writerThread.join();
+        readerThread.join();
+    }
+}
+```
+
+---
+
+## 10. Simulating Starvation and Mitigation Techniques
+
+This simulation creates a high-priority thread and a low-priority thread. The use of `Thread.yield()` helps mitigate starvation by hinting to the scheduler to let other threads run.
+
+```java
+public class StarvationSimulation {
+
+    public static void main(String[] args) {
+        Runnable highPriorityTask = () -> {
+            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+            for (int i = 0; i < 1000; i++) {
+                if (i % 100 == 0) {
+                    System.out.println("High Priority running: " + Thread.currentThread().getName() + " iteration " + i);
+                    Thread.yield();
+                }
+            }
+        };
+
+        Runnable lowPriorityTask = () -> {
+            Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+            for (int i = 0; i < 1000; i++) {
+                if (i % 100 == 0) {
+                    System.out.println("Low Priority running: " + Thread.currentThread().getName() + " iteration " + i);
+                    Thread.yield();
+                }
+            }
+        };
+
+        Thread highThread = new Thread(highPriorityTask, "HighPriorityThread");
+        Thread lowThread = new Thread(lowPriorityTask, "LowPriorityThread");
+
+        highThread.start();
+        lowThread.start();
+
+        try {
+            highThread.join();
+            lowThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        System.out.println("Starvation simulation complete.");
+    }
+}
+```
+
+---
+
+## 11. Inter-Thread Communication for Collaborative Processing
+
+Here, a producer and consumer communicate via a shared blocking queue. This is a classic example of inter-thread communication.
+
+```java
+import java.util.concurrent.*;
+
+public class InterThreadCommunication {
+    public static void main(String[] args) {
+        BlockingQueue<String> queue = new LinkedBlockingQueue<>();
+
+        Runnable producer = () -> {
+            try {
+                for (int i = 1; i <= 5; i++) {
+                    String message = "Message-" + i;
+                    queue.put(message);
+                    System.out.println("Produced: " + message);
+                    Thread.sleep(200);
+                }
+                queue.put("DONE"); // Signal termination
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        };
+
+        Runnable consumer = () -> {
+            try {
+                String msg;
+                while (!(msg = queue.take()).equals("DONE")) {
+                    System.out.println("Consumed: " + msg);
+                    Thread.sleep(300);
+                }
+                System.out.println("Consumer finished");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        };
+
+        new Thread(producer).start();
+        new Thread(consumer).start();
+    }
+}
+```
+
+---
+
+## 12. Producer-Consumer Model with Multiple Producers and Consumers
+
+Using a `BlockingQueue` with an `ExecutorService`, this example demonstrates multiple producers and consumers working concurrently.
+
+```java
+import java.util.concurrent.*;
+
+public class MultiProducerConsumerExample {
+    public static void main(String[] args) {
+        BlockingQueue<Integer> queue = new ArrayBlockingQueue<>(10);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+
+        Runnable producer = () -> {
+            for (int i = 0; i < 10; i++) {
+                try {
+                    int value = (int) (Math.random() * 100);
+                    queue.put(value);
+                    System.out.println("Produced: " + value);
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        };
+
+        Runnable consumer = () -> {
+            for (int i = 0; i < 10; i++) {
+                try {
+                    int value = queue.take();
+                    System.out.println("Consumed: " + value);
+                    Thread.sleep(150);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        };
+
+        executor.execute(producer);
+        executor.execute(producer);
+        executor.execute(consumer);
+        executor.execute(consumer);
+
+        executor.shutdown();
+        try {
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+```
+
+---
+
+## 13. Stress-Test for a High-Load Server Using Concurrent Utilities
+
+This stress test simulates a high-load scenario by submitting a large number of tasks concurrently. A `CountDownLatch` is used to wait until all tasks finish, and an `AtomicInteger` tracks task completion.
+
+```java
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class StressTestServer {
+    public static void main(String[] args) throws InterruptedException {
+        int taskCount = 1000;
+        ExecutorService executor = Executors.newFixedThreadPool(50);
+        AtomicInteger counter = new AtomicInteger(0);
+        CountDownLatch latch = new CountDownLatch(taskCount);
+
+        Runnable task = () -> {
+            try {
+                Thread.sleep(10); // Simulate processing work
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            counter.incrementAndGet();
+            latch.countDown();
+        };
+
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < taskCount; i++) {
+            executor.submit(task);
+        }
+        latch.await();
+        long endTime = System.currentTimeMillis();
+
+        executor.shutdown();
+        System.out.println("Processed " + counter.get() + " tasks in " + (endTime - startTime) + "ms");
+    }
+}
+```
+
+---
+
+## 14. Asynchronous Processing with Synchronous Logging
+
+Here, tasks run asynchronously via an executor, while log messages are synchronized via a dedicated logger thread using a `BlockingQueue`.
+
+```java
+import java.util.concurrent.*;
+
+public class AsyncProcessingWithSyncLogging {
+    private static final BlockingQueue<String> logQueue = new LinkedBlockingQueue<>();
+
+    // Dedicated logger thread
+    static class Logger implements Runnable {
+        public void run() {
+            while (true) {
+                try {
+                    String log = logQueue.take();
+                    // Synchronous logging (simulate by printing)
+                    System.out.println("LOG: " + log);
+                    if (log.equals("STOP")) break;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        Thread loggerThread = new Thread(new Logger());
+        loggerThread.start();
+
+        // Asynchronous processing tasks
+        Runnable task = () -> {
+            String result = "Result computed by " + Thread.currentThread().getName();
+            // Log the result synchronously by placing it in the log queue
+            logQueue.offer(result);
+        };
+
+        for (int i = 0; i < 10; i++) {
+            executor.submit(task);
+        }
+
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
+
+        // Signal logger thread to stop
+        logQueue.offer("STOP");
+        loggerThread.join();
+    }
+}
+```
+
+---
+
+## 15. Distributed Task Scheduler Using Virtual Threads and Callable Tasks
+
+This distributed-like task scheduler uses a virtual thread executor (available in recent Java versions) and submits several `Callable` tasks concurrently.
+
+```java
+import java.util.concurrent.*;
+import java.util.*;
+
+public class DistributedTaskScheduler {
+    public static void main(String[] args) throws Exception {
+        // Using virtual thread executor (Java 19+ preview: Executors.newVirtualThreadPerTaskExecutor())
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Callable<String>> tasks = new ArrayList<>();
+            for (int i = 1; i <= 5; i++) {
+                final int taskId = i;
+                tasks.add(() -> {
+                    Thread.sleep(200); // Simulate task processing delay
+                    return "Task " + taskId + " completed by " + Thread.currentThread().getName();
+                });
+            }
+
+            List<Future<String>> futures = executor.invokeAll(tasks);
+            for (Future<String> future : futures) {
+                System.out.println(future.get());
+            }
+        }
+    }
+}
+```
+
+---
