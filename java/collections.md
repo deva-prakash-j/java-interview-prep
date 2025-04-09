@@ -5,6 +5,8 @@ Java Collections is a unified architecture that represents and manipulates group
 ---
 
 ## Table of Contents
+
+# Basic Collections
 1. [What Are Collections?](#what-are-collections)
 2. [Collections Interface Hierarchy](#collections-interface-hierarchy)
 3. [Core Interfaces and Implementations](#core-interfaces-and-implementations)
@@ -13,6 +15,18 @@ Java Collections is a unified architecture that represents and manipulates group
    - [Queue Implementations](#queue-implementations)
    - [Map Implementations](#map-implementations)
 4. [Summary](#summary)
+
+## Iterators
+1. [Iterator Overview](#iterator-overview)
+2. [Ways to Iterate Collections](#ways-to-iterate-collections)
+   - [Using Iterator](#using-iterator)
+   - [Using Enhanced For-Each Loop](#using-enhanced-for-each-loop)
+   - [Using ListIterator (for Lists)](#using-listiterator-for-lists)
+   - [Using Enumeration (Legacy Collections)](#using-enumeration-legacy-collections)
+3. [Fail-Fast vs Fail-Safe Iterators](#fail-fast-vs-fail-safe-iterators)
+4. [Spliterator Overview](#spliterator-overview)
+5. [Spliterator Usage and Examples](#spliterator-usage-and-examples)
+6. [Summary](#summary)
 
 ---
 
@@ -128,5 +142,291 @@ Maps store key-value pairs. Although not a child of the Collection interface, th
 | **ConcurrentHashMap**  | For high-concurrency scenarios; non-blocking reads and segmented locks. | Uses a segmented hash table (or bin-based locking); dynamically resizes.                | Thread-safe          | High throughput in concurrent environments; better scalability.    | Iterators are weakly consistent; slightly more complex semantics.    | `put()`, `get()`, `remove()`, `forEach()`, `compute()`         |
 
 *For concurrent sorted maps, [ConcurrentSkipListMap](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentSkipListMap.html) is available.*
+
+---
+
+# Iterators and Spliterators in Java
+
+## Iterator Overview
+
+An **Iterator** is an object that enables you to traverse through a collection one element at a time.  
+- **Key Methods**:
+  - `hasNext()`: Checks if there is another element.
+  - `next()`: Retrieves the next element.
+  - `remove()`: (Optional) Removes the last element returned by the iterator from the underlying collection.
+
+Iterators are available from most collection implementations via the `iterator()` method.
+
+---
+
+## Ways to Iterate Collections
+
+### Using Iterator
+
+Using the explicit **Iterator** is useful when you want fine-grained control over the iteration process, such as conditionally removing elements during traversal.
+
+```java
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+public class IteratorExample {
+    public static void main(String[] args) {
+        List<String> names = new ArrayList<>();
+        names.add("Alice");
+        names.add("Bob");
+        names.add("Charlie");
+        
+        Iterator<String> iterator = names.iterator();
+        while (iterator.hasNext()) {
+            String name = iterator.next();
+            System.out.println("Name: " + name);
+            // Remove an element if a condition is met
+            if ("Bob".equals(name)) {
+                iterator.remove(); // safe removal during iteration
+            }
+        }
+        System.out.println("After removal: " + names);
+    }
+}
+```
+
+### Using Enhanced For-Each Loop
+
+Java’s **for-each loop** provides a concise syntax that under the hood uses an iterator. This method is recommended when you only need to read elements without modifying the collection.
+
+```java
+import java.util.List;
+import java.util.ArrayList;
+
+public class ForEachExample {
+    public static void main(String[] args) {
+        List<String> cities = new ArrayList<>();
+        cities.add("New York");
+        cities.add("Paris");
+        cities.add("Tokyo");
+
+        for (String city : cities) {
+            System.out.println("City: " + city);
+        }
+    }
+}
+```
+
+### Using ListIterator (for Lists)
+
+The **ListIterator** is available for List implementations. In addition to forward traversal, it allows backward iteration and element modification.
+
+```java
+import java.util.LinkedList;
+import java.util.ListIterator;
+
+public class ListIteratorExample {
+    public static void main(String[] args) {
+        LinkedList<String> fruits = new LinkedList<>();
+        fruits.add("Apple");
+        fruits.add("Banana");
+        fruits.add("Cherry");
+
+        ListIterator<String> listIterator = fruits.listIterator();
+        // Forward iteration:
+        while (listIterator.hasNext()) {
+            System.out.println("Fruit: " + listIterator.next());
+        }
+        
+        // Backward iteration:
+        while (listIterator.hasPrevious()) {
+            System.out.println("Previous Fruit: " + listIterator.previous());
+        }
+    }
+}
+```
+
+### Using Enumeration (Legacy Collections)
+
+The **Enumeration** interface is primarily used with legacy collections like `Vector` or `Hashtable`. It provides methods `hasMoreElements()` and `nextElement()`.
+
+```java
+import java.util.Enumeration;
+import java.util.Vector;
+
+public class EnumerationExample {
+    public static void main(String[] args) {
+        Vector<Integer> numbers = new Vector<>();
+        numbers.add(10);
+        numbers.add(20);
+        numbers.add(30);
+        
+        Enumeration<Integer> enumeration = numbers.elements();
+        while (enumeration.hasMoreElements()) {
+            System.out.println("Number: " + enumeration.nextElement());
+        }
+    }
+}
+```
+
+---
+
+## Fail-Fast vs Fail-Safe Iterators
+
+When iterating over a collection, concurrent modifications (changes made by another thread or even by the same thread outside the iterator) can cause unpredictable results. Java collections implement two main strategies:
+
+### Fail-Fast Iterators
+
+- **Behavior**: They throw a `ConcurrentModificationException` if the collection is modified (other than by the iterator's own `remove()` method) while iterating.
+- **Usage**: Almost all standard collection iterators (e.g., those from `ArrayList`, `HashMap`) are fail-fast.
+- **Example**:
+
+  ```java
+  import java.util.ArrayList;
+  import java.util.Iterator;
+  import java.util.List;
+
+  public class FailFastExample {
+      public static void main(String[] args) {
+          List<String> list = new ArrayList<>();
+          list.add("A");
+          list.add("B");
+          list.add("C");
+
+          try {
+              for (String s : list) {
+                  if ("B".equals(s)) {
+                      list.remove(s); // Modifying collection outside the iterator
+                  }
+              }
+          } catch (Exception e) {
+              System.out.println("Exception caught: " + e);
+          }
+      }
+  }
+  ```
+  
+  *In the example above, a `ConcurrentModificationException` is thrown because the list is modified during iteration.*
+
+### Fail-Safe Iterators
+
+- **Behavior**: They operate on a clone of the underlying collection, meaning that they do not throw exceptions when the collection is modified during iteration. However, the iterator does not reflect those modifications.
+- **Usage**: Collections like `CopyOnWriteArrayList` and `ConcurrentHashMap` use fail-safe iterators.
+- **Example**:
+
+  ```java
+  import java.util.Iterator;
+  import java.util.concurrent.CopyOnWriteArrayList;
+
+  public class FailSafeExample {
+      public static void main(String[] args) {
+          CopyOnWriteArrayList<String> list = new CopyOnWriteArrayList<>();
+          list.add("X");
+          list.add("Y");
+          list.add("Z");
+
+          Iterator<String> iterator = list.iterator();
+          while (iterator.hasNext()) {
+              String element = iterator.next();
+              System.out.println("Element: " + element);
+              // Modification during iteration does not throw an exception
+              if ("Y".equals(element)) {
+                  list.add("W");
+              }
+          }
+          System.out.println("Final list: " + list);
+      }
+  }
+  ```
+  
+  *In this example, even though the list is modified during iteration, the iterator works on a snapshot of the collection and does not throw an exception.*
+
+---
+
+## Spliterator Overview
+
+Introduced in Java 8, a **Spliterator** is a special iterator designed for parallelism and bulk operations.
+
+### Key Features:
+- **Splitting**: A Spliterator can partition (or "split") its elements into several parts so that they can be processed concurrently.
+- **Traversal Methods**:
+  - `tryAdvance(Consumer<? super T> action)`: Processes a single element if available.
+  - `forEachRemaining(Consumer<? super T> action)`: Processes all remaining elements.
+  - `trySplit()`: Attempts to split the elements for parallel processing.
+- **Characteristics**: Spliterators provide additional metadata such as size estimates and ordering. They also report characteristics (e.g., `ORDERED`, `SORTED`, `DISTINCT`) to guide parallel processing strategies.
+
+---
+
+## Spliterator Usage and Examples
+
+### Basic Spliterator Example
+
+```java
+import java.util.ArrayList;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+
+public class SpliteratorExample {
+    public static void main(String[] args) {
+        ArrayList<Integer> numbers = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            numbers.add(i);
+        }
+        
+        Spliterator<Integer> spliterator = numbers.spliterator();
+        
+        // Processing one element at a time using tryAdvance()
+        System.out.println("Using tryAdvance():");
+        while (spliterator.tryAdvance((Integer n) -> System.out.println("Number: " + n))) {
+            // Each tryAdvance call processes one element
+        }
+        
+        // Alternatively, use forEachRemaining() to process remaining elements
+        spliterator = numbers.spliterator(); // get a new spliterator
+        System.out.println("\nUsing forEachRemaining():");
+        spliterator.forEachRemaining((Integer n) -> System.out.println("Number: " + n));
+    }
+}
+```
+
+### Splitting for Parallel Processing
+
+The `trySplit()` method partitions the spliterator into two parts—one for immediate processing and one for later or concurrent processing.
+
+```java
+import java.util.ArrayList;
+import java.util.Spliterator;
+
+public class SpliteratorSplitExample {
+    public static void main(String[] args) {
+        ArrayList<String> items = new ArrayList<>();
+        for (int i = 1; i <= 8; i++) {
+            items.add("Item-" + i);
+        }
+        
+        Spliterator<String> spliterator1 = items.spliterator();
+        Spliterator<String> spliterator2 = spliterator1.trySplit();
+        
+        System.out.println("Spliterator 1:");
+        spliterator1.forEachRemaining(item -> System.out.println("  " + item));
+        
+        System.out.println("\nSpliterator 2:");
+        if (spliterator2 != null) {
+            spliterator2.forEachRemaining(item -> System.out.println("  " + item));
+        }
+    }
+}
+```
+
+*The above example shows how to split a collection into two parts, which can be processed in parallel.*
+
+---
+
+## Summary
+
+- **Iterators** provide a standard way to traverse collections and include fail-fast behavior to prevent unpredictable modifications.
+- **Enhanced For-Each Loops** simplify iteration when no modifications are needed.
+- **ListIterator** offers additional features like bi-directional traversal for list collections.
+- **Enumeration** is used with legacy collections.
+- **Fail-Fast vs Fail-Safe Iterators**:  
+  - *Fail-Fast* iterators (e.g., in `ArrayList`, `HashMap`) throw exceptions if the collection is modified during iteration.  
+  - *Fail-Safe* iterators (e.g., in `CopyOnWriteArrayList`) operate on a snapshot and allow concurrent modifications.
+- **Spliterators**—introduced in Java 8—support both sequential and parallel traversal. They can be split into multiple parts, making them ideal for parallel processing using streams or fork-join frameworks.
 
 ---
